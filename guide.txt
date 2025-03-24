@@ -1,0 +1,53 @@
+
+Testing Lambda Manually (gitbash)
+aws lambda invoke \--function-name ProcessLogsLambda \--payload '{"body": "{"log_type": "security", "message": "Unauthorized access detected"}"}' \--cli-binary-format raw-in-base64-out \output.json
+
+If successful, response should be: {"message": "Log processed successfully"}
+
+Checking Lambda CloudWatch Logs (powershell)
+aws logs tail "/aws/lambda/ProcessLogsLambda" --follow
+
+Look for:
+
+"Received event: {...}" (Lambda executed successfully)
+
+"Writing log to S3: resumerx-logs-5y3lp26l/logs/security/{timestamp}.json" (S3 write attempt)
+
+"Successfully wrote log to S3." (S3 write success)
+
+"Sending SNS alert for security" (SNS alert sent)
+
+Verifying Logs in S3
+aws s3 ls s3://resumerx-logs-5y3lp26l/logs/security/ --recursive
+
+If a file appears, Lambda successfully wrote to S3
+
+API Gateway Testing
+aws apigateway test-invoke-method \--rest-api-id xve6hpamz4 \--resource-id byr8h2 \--http-method POST \--body '{"log_type": "security", "message": "Unauthorized access attempt detected"}'
+
+If API is working correctly, it should return: {"message": "Log processed successfully"}
+
+Debugging (If Issues Persist)
+
+Check Lambda CloudWatch Logs:
+aws logs tail "/aws/lambda/ProcessLogsLambda" --follow
+
+Check S3 IAM Permissions:
+aws iam get-role-policy --role-name lambda_exec_role --policy-name lambda_s3_access
+
+Check S3 Bucket Policy:
+aws s3api get-bucket-policy --bucket resumerx-logs-5y3lp26l --query "Policy" --output text
+
+Do before Terraform Destroy (powershell)
+aws apigateway update-account --patch-operations op=replace,path=/cloudwatchRoleArn,value=
+aws s3 rm s3://resumerx-logs-5y3lp26l/logs/ --recursive
+aws s3 rm s3://resumerx-logs-5y3lp26l/security/ --recursive
+aws s3api delete-objects --bucket resumerx-logs-5y3lp26l --delete "$(aws s3api list-object-versions --bucket resumerx-logs-5y3lp26l --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output json)"
+Verify 
+aws s3 ls s3://resumerx-logs-5y3lp26l/ --recursive
+
+
+Clean up
+aws logs describe-log-groups --query "logGroups[*].logGroupName"
+aws logs delete-log-group --log-group-name "/aws/apigateway/YOUR_API_NAME"
+aws logs delete-log-group --log-group-name "API-Gateway-Execution-Logs_xxxxx/prod"

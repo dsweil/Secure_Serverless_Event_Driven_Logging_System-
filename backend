@@ -1,0 +1,9 @@
+terraform {
+  backend "s3" {
+    bucket         = "myterraformbackendclss6"         # Main S3 bucket for Terraform state
+    key            = "Secure-Logging-System/dev/terraform.tfstate"  # Project-based path
+    region         = "us-east-1"                       # Adjust to your AWS region
+    encrypt        = true                              # Encrypt state file for security
+    dynamodb_table = "terraform-lock"                 # Optional: Use DynamoDB for state locking
+  }
+}
