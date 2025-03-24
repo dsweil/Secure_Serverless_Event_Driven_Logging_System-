@@ -115,8 +115,6 @@ IAM ensures:
 |-- s3.tf
 |-- sec_hub.tf
 |-- sns.tf
-|-- terraform.tfstate
-`-- terraform.tfstate.backup
 ```
 
 ---
